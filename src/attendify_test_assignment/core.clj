@@ -125,7 +125,7 @@
 
 (defn -main []
 	(println "Greetings!")
-	(println "Look into task1 function in src/attendify_test_assignment/core.clj")
-	(println "and task2 in test/attendify_test_assignment/core_test.clj")
-	
+	(println "Task1 is implemented in src/attendify_test_assignment/core.clj")
+	(println "and task2 is in src/attendify_test_assignment/url_pattern.clj")
+
 	(shutdown-agents))

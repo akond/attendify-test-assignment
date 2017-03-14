@@ -1,10 +1,6 @@
-(ns attendify-test-assignment.core-test
+(ns attendify-test-assignment.url-pattern-test
 	(:require [clojure.test :refer :all]
-			  [attendify-test-assignment.core :refer :all]
-			  [attendify-test-assignment.url-pattern :as url-pattern]
-			  [cemerick.url :as url]
-			  [clojure.pprint :refer :all]
-			  [instaparse.core :as insta]))
+			  [attendify-test-assignment.url-pattern :as url-pattern]))
 
 
 (deftest Pattern-Matching

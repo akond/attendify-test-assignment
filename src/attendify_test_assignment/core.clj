@@ -1,131 +1,41 @@
 (ns attendify-test-assignment.core
-	(:require [clj-http.client :as client]
-			  [clojure.pprint :refer :all]
-			  [clojure.data.json :as json]
-			  [clojure.core.async :as async :refer [<! >! <!! >!! timeout chan alt! go]]
-			  [clojure.java.io :as io]
-			  [clojure.string :as str]))
-
-
-(def client-id "8f998845c37e52ead2c3c2fa47e87951214d147aa0dc2aced4e6a0595e172bc8")
-
-(defn- api-request [access-token path & [query]]
-	(let [path (if (str/starts-with? path "https://") path (str "https://api.dribbble.com/v1/" path))
-		  response (client/get path
-							   {:query-params (or query {"per_page" 100})
-								:insecure?    true
-								:headers      {"Authorization" (str "Bearer " access-token)}
-								:accept       :json
-								})
-		  json (try (json/read-str (:body response)) (catch Exception e nil))]
-		(assoc response :content json)
+	(:require
+		[attendify-test-assignment.dribbble :as dribbble]
+		[attendify-test-assignment.transport :as transport]
+		[attendify-test-assignment.url-pattern :as url-pattern]
+		[clojure.test :as test]
 		))
 
 
-(defn get-hash [type data]
-	(.digest (java.security.MessageDigest/getInstance type) (.getBytes data)))
+(defn Task1 []
+	(println "Task 1:")
+	(let [access-token "8f998845c37e52ead2c3c2fa47e87951214d147aa0dc2aced4e6a0595e172bc8"
+		  debug? true
+		  host (if debug?
+				   "http://app.dev:8081/"
+				   "https://api.dribbble.com/")
+		  throttle (if debug? 10 1000)
+		  transport (transport/create-transport host access-token (transport/create-throttle throttle))
+		  api (dribbble/create-dribbble-api transport)]
 
-(defn sha1-hash [data]
-	(get-hash "sha1" data))
+		(time (prn (.top-ten-likers api 21012)))
+		;(time (prn (.top-ten-likers api 1654)))
+		(shutdown-agents)))
 
-(defn get-hash-str [data-bytes]
-	(apply str
-		   (map
-			   #(.substring
-					(Integer/toString
-						(+ (bit-and % 0xff) 0x100) 16) 1)
-			   data-bytes)
-		   ))
 
-(defn- create-api-channel [api]
-	(let [in (chan)
-		  out (chan)]
-		(go
-			(while true
-				(let [path (<! in)]
-					(println "Fetching " path)
-					(let [id (get-hash-str (sha1-hash path))
-						  file-name (str ".cache/" id)
-						  exists? (.exists (io/as-file file-name))]
-
-						(when-not (.exists (io/as-file file-name))
-							(spit file-name (pr-str (api path))))
-
-						(>! out (read-string (slurp file-name)))
-
-						(when-not exists?
-							(<! (timeout 1150)))
-						))
-				))
-
-		(fn [path]
-			(future
-				(>!! in path)
-				(<!! out)))
+(defn Task2 []
+	(println "Task 2:")
+	(let [Dribbble2 (url-pattern/new-pattern "host(dribbble.com); path(shots/?id); queryparam(offset=?offset); queryparam(list=?type);")
+		  result (url-pattern/recognize Dribbble2 "http://dribbble.com/shots/bradfitz?list=abc&offset=123")]
+		(test/is (= [[:id "bradfitz"] [:offset "123"] [:list "abc"]] result
+					))
+		(clojure.pprint/pprint result)
 		))
-
-(def api (create-api-channel (partial api-request client-id)))
-
-
-(defn get-user [id]
-	@(api (str "users/" id)))
-
-
-(defn fetch-sequence
-	([url]
-	 (fetch-sequence identity url))
-
-	([f url]
-	 {:pre [(or (fn? f) (vector? f))]}
-
-	 (let [f (if (fn? f) f #(get-in % f))]
-		 (loop [r []
-				response @(api url)]
-			 (let [records (concat r (map (or f identity) (:content response)))]
-				 (if-let [next (get-in response [:links :next :href])]
-					 (recur records @(api next))
-					 records))
-			 ))
-		))
-
-
-(defn add-likes-up [likes]
-	(->> likes
-		 (map #(apply hash-map (interleave % (repeat 1))))
-		 (apply merge-with +)))
-
-
-(defn top-10 [likers-counters]
-	(let [result (into {} (take-last 10 (sort-by val likers-counters)))]
-		(into (sorted-map-by (fn [key1 key2]
-								 (compare [(get result key2) key2]
-										  [(get result key1) key1]))) result
-			  ))
-	)
-
-(defn task1 []
-	(let [user (get-user 1579965)
-		  follower-urls (get-in user [:content "followers_url"])
-		  follower-shot-urls (fetch-sequence ["follower" "shots_url"] follower-urls)
-		  all-shots (mapcat fetch-sequence follower-shot-urls)
-		  all-like-urls (map #(get % "likes_url") all-shots)
-		  likes (map (partial fetch-sequence ["user" "id"]) all-like-urls)
-		  counters (add-likes-up likes)
-		  ]
-		;(pprint user)
-		;(pprint follower-urls)
-		;(pprint (count follower-shot-urls))
-		;(pprint (map (comp user-votes (partial fetch-sequence ["user" "id"])) (take 2 all-like-urls)))
-		;(pprint @(api (second follower-shot-urls)))
-
-		;(pprint likes)
-		;(pprint counters)
-		(pprint (top-10 counters))))
-
 
 (defn -main []
 	(println "Greetings!")
-	(println "Task1 is implemented in src/attendify_test_assignment/core.clj")
-	(println "and task2 is in src/attendify_test_assignment/url_pattern.clj")
 
-	(shutdown-agents))
+	(Task1)
+	(Task2)
+
+	(println "Done"))

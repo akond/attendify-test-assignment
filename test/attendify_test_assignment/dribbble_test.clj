@@ -1,7 +1,8 @@
 (ns attendify-test-assignment.dribbble-test
 	(:require [clojure.test :refer :all]
-			  [attendify-test-assignment.dribbble :as dribbble]
-			  [attendify-test-assignment.transport :as transport]))
+			  [attendify-test-assignment.transport :as transport]
+			  [manifold.stream]
+			  [attendify-test-assignment.dribble-manifold :refer :all]))
 
 (def Izabella {"comments_received_count" 6,
 			   "bio"                     "",
@@ -35,8 +36,6 @@
 			   "rebounds_received_count" 0,
 			   "projects_count"          0})
 
-
-
 (deftest Dribbble
 	(testing "Top 10 returns"
 		(let [liker-counters (apply list (concat
@@ -52,15 +51,9 @@
 											 (repeat 200 1260)
 											 (repeat 200 1261)
 											 (repeat 200 1262)
-											 (repeat 200 1263)
-											 ))
-			  result (dribbble/top-ten liker-counters)]
+											 (repeat 200 1263)))
+			  result (top-ten liker-counters)]
 
 			(is (seq? result))
 			(is (every? vector? result))
-			(is (every? (comp (partial <= 100) second) result)))
-		)
-
-	(testing "follower-urls"
-		(is (= "https://api.dribbble.com/v1/users/1579965/followers" (dribbble/user-followers-url Izabella))))
-	)
+			(is (every? (comp (partial <= 100) second) result)))))

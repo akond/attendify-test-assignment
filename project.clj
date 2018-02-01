@@ -9,7 +9,7 @@
 				   [com.cemerick/url "0.1.1"]
 				   [instaparse "1.4.5"]
 				   [http-kit "2.2.0"]
-				   [cheshire "5.7.0"]]
+				   [cheshire "5.7.0"]
+				   [manifold "0.1.6"]]
 
-	:main attendify-test-assignment.core
-	)
+	:main attendify-test-assignment.core)
